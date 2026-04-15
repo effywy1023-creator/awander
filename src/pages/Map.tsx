@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { LogOut, Lock, MapPin, Tent, Compass, Waves, Sun, DoorOpen, Mountain, Cloud, Flame, Trees, BookOpen, Sparkles, ArrowLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { ArrowLeft, Play, Pause, RotateCcw, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -258,7 +258,7 @@ const LevelDetail = () => {
     if (!newNote.trim()) return;
     setSavingNote(true);
     try {
-      const { error } = await supabase.from('treasure_notes').insert({
+      const { error } = await db.from('treasure_notes').insert({
         user_id: userId!,
         level_id: levelId!,
         content: newNote.trim(),
