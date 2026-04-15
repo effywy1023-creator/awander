@@ -10,6 +10,7 @@ import { toast } from 'sonner';
 
 const Register = () => {
   const [name, setName] = useState('');
+  const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,20 +18,55 @@ const Register = () => {
   const { t } = useAppConfig();
 
   const handleRegister = async () => {
-    if (!name.trim() || !email.trim() || !password.trim()) {
-      toast.error('请填写所有字段');
+    if (!name.trim() || !username.trim() || !password.trim()) {
+      toast.error('请填写姓名、用户名和密码');
       return;
     }
+    if (password.trim().length < 6) {
+      toast.error('密码至少需要6位');
+      return;
+    }
+
     setLoading(true);
     try {
-      const { error } = await supabase.auth.signUp({
-        email: email.trim(),
+      // 检查用户名是否已存在
+      const { data: existing } = await supabase
+        .from('user_profiles')
+        .select('id')
+        .eq('username', username.trim())
+        .maybeSingle();
+
+      if (existing) {
+        toast.error('用户名已被使用，请换一个');
+        setLoading(false);
+        return;
+      }
+
+      // 没填邮箱就生成虚拟邮箱
+      const finalEmail = email.trim()
+        ? email.trim()
+        : `${username.trim()}@gentle-lore.app`;
+
+      const { data, error } = await supabase.auth.signUp({
+        email: finalEmail,
         password: password.trim(),
         options: {
           data: { display_name: name.trim() },
         },
       });
       if (error) throw error;
+
+      // 把 username 和 email 存入 user_profiles
+      if (data.user) {
+        await supabase
+          .from('user_profiles')
+          .update({
+            username: username.trim(),
+            email: finalEmail,
+          })
+          .eq('id', data.user.id);
+      }
+
       toast.success('注册成功，请登录');
       navigate('/login');
     } catch (err: any) {
@@ -55,7 +91,6 @@ const Register = () => {
               {t('register_subtitle', '注册后即可开始你的探险之旅')}
             </p>
           </div>
-
           <div className="w-full flex flex-col gap-4">
             <Input
               placeholder="你的名字"
@@ -64,8 +99,14 @@ const Register = () => {
               className="h-12 rounded-xl bg-background/60 border-border/50 text-center"
             />
             <Input
+              placeholder="用户名（登录用）"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="h-12 rounded-xl bg-background/60 border-border/50 text-center"
+            />
+            <Input
               type="email"
-              placeholder="邮箱"
+              placeholder="邮箱（选填）"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="h-12 rounded-xl bg-background/60 border-border/50 text-center"
@@ -86,7 +127,6 @@ const Register = () => {
               {loading ? '注册中...' : '立即注册'}
             </Button>
           </div>
-
           <p className="text-sm text-muted-foreground">
             已有账号？{' '}
             <Link to="/login" className="text-primary underline underline-offset-2 hover:text-primary/80">
