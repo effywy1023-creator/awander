@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 
 interface AppConfig {
   [key: string]: string;
@@ -11,10 +11,10 @@ const configCache: { data: AppConfig | null; promise: Promise<AppConfig> | null 
 };
 
 const fetchConfig = async (): Promise<AppConfig> => {
-  const { data } = await supabase.from('app_config').select('key, value');
+  const { data } = await db.from('app_config').select('key, value');
   const map: AppConfig = {};
   if (data) {
-    for (const row of data as any[]) {
+    for (const row of data) {
       map[row.key] = row.value;
     }
   }

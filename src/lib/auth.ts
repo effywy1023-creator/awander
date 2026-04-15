@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 
 interface AuthState {
   userId: string | null;
@@ -45,7 +46,7 @@ export const useAuth = create<AuthState>((set, get) => ({
   initialize: async () => {
     const { data: { session } } = await supabase.auth.getSession();
     if (session?.user) {
-      const { data: profile } = await supabase
+      const { data: profile } = await db
         .from('user_profiles')
         .select('display_name, is_admin')
         .eq('id', session.user.id)
@@ -72,7 +73,7 @@ export const useAuth = create<AuthState>((set, get) => ({
           isLoggedIn: false,
         });
       } else if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-        const { data: profile } = await supabase
+        const { data: profile } = await db
           .from('user_profiles')
           .select('display_name, is_admin')
           .eq('id', session.user.id)
