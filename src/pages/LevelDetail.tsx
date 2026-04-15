@@ -62,7 +62,7 @@ const LevelDetail = () => {
 
   const loadChildLevels = async () => {
     try {
-      const { data: children } = await supabase
+      const { data: children } = await db
         .from('levels')
         .select('id, name, parent_id')
         .eq('parent_id', levelId!);
@@ -72,7 +72,7 @@ const LevelDetail = () => {
         return;
       }
 
-      const { data: notesData } = await supabase
+      const { data: notesData } = await db
         .from('treasure_notes')
         .select('level_id')
         .eq('user_id', userId!)
@@ -94,7 +94,7 @@ const LevelDetail = () => {
 
   const loadLevel = async () => {
     try {
-      const { data: level } = await supabase
+      const { data: level } = await db
         .from('levels')
         .select('*')
         .eq('id', levelId!)
@@ -106,7 +106,7 @@ const LevelDetail = () => {
 
       const audioIds = ((level as any).audio_ids || []) as string[];
       if (audioIds.length > 0) {
-        const { data: assets } = await supabase
+        const { data: assets } = await db
           .from('assets')
           .select('*')
           .in('id', audioIds);
@@ -119,7 +119,7 @@ const LevelDetail = () => {
       }
 
       if ((level as any).writing_id) {
-        const { data: writingAsset } = await supabase
+        const { data: writingAsset } = await db
           .from('assets')
           .select('*')
           .eq('id', (level as any).writing_id)
@@ -136,7 +136,7 @@ const LevelDetail = () => {
   };
 
   const loadNotes = async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('treasure_notes')
       .select('*')
       .eq('user_id', userId!)
@@ -160,7 +160,7 @@ const LevelDetail = () => {
       return;
     }
 
-    const { data: progress } = await supabase
+    const { data: progress } = await db
       .from('user_progress')
       .select('*')
       .eq('user_id', userId!)
@@ -193,7 +193,7 @@ const LevelDetail = () => {
       if (audioRef.current) {
         const pos = audioRef.current.currentTime;
         try {
-          const { data: existing } = await supabase
+          const { data: existing } = await db
             .from('user_progress')
             .select('id, total_sec')
             .eq('user_id', userId!)
@@ -202,7 +202,7 @@ const LevelDetail = () => {
             .maybeSingle();
 
           if (existing) {
-            await supabase
+            await db
               .from('user_progress')
               .update({
                 last_pos: pos,
@@ -211,7 +211,7 @@ const LevelDetail = () => {
               })
               .eq('id', (existing as any).id);
           } else {
-            await supabase
+            await db
               .from('user_progress')
               .insert({
                 user_id: userId!,
@@ -276,7 +276,7 @@ const LevelDetail = () => {
       loadChildLevels();
 
       // Check if all levels completed
-      const { data: route } = await supabase
+      const { data: route } = await db
         .from('routes')
         .select('level_ids')
         .eq('product_id', currentProductId!)
@@ -284,7 +284,7 @@ const LevelDetail = () => {
 
       if (route?.level_ids) {
         const allLevelIds = route.level_ids as string[];
-        const { data: completedNotes } = await supabase
+        const { data: completedNotes } = await db
           .from('treasure_notes')
           .select('level_id')
           .eq('user_id', userId!);

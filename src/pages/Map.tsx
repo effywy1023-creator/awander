@@ -98,7 +98,7 @@ const Map = () => {
   }, [isLoggedIn, authLoading, currentProductId]);
 
   const checkMultipleProducts = async () => {
-    const { data } = await supabase
+    const { data } = await db
       .from('user_products')
       .select('product_id')
       .eq('user_id', userId!);
@@ -107,7 +107,7 @@ const Map = () => {
 
   const loadLevels = async () => {
     try {
-      const { data: route, error: routeErr } = await supabase
+      const { data: route, error: routeErr } = await db
         .from('routes')
         .select('*')
         .eq('product_id', currentProductId!)
@@ -129,7 +129,7 @@ const Map = () => {
         return;
       }
 
-      const { data: levelsData, error: levelsErr } = await supabase
+      const { data: levelsData, error: levelsErr } = await db
         .from('levels')
         .select('*')
         .in('id', levelIds);
@@ -143,19 +143,19 @@ const Map = () => {
       setLevels(ordered);
 
       const [progressRes, notesRes, totalSecRes, noteCountRes] = await Promise.all([
-        supabase
+        db
           .from('user_progress')
           .select('level_id')
           .eq('user_id', userId!),
-        supabase
+        db
           .from('treasure_notes')
           .select('level_id')
           .eq('user_id', userId!),
-        supabase
+        db
           .from('user_progress')
           .select('total_sec')
           .eq('user_id', userId!),
-        supabase
+        db
           .from('treasure_notes')
           .select('id', { count: 'exact', head: true })
           .eq('user_id', userId!),
