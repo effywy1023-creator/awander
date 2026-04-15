@@ -30,7 +30,7 @@ const Products = () => {
 
   const loadProducts = async () => {
     try {
-      const { data, error } = await supabase
+      const { data, error } = await db
         .from('user_products')
         .select('product_id, products(id, name, description, theme)')
         .eq('user_id', userId!);

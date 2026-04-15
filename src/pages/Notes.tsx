@@ -33,7 +33,7 @@ const Notes = () => {
 
   const loadNotes = async () => {
     try {
-      const { data: notesData } = await supabase
+      const { data: notesData } = await db
         .from('treasure_notes')
         .select('*')
         .eq('user_id', userId!)
@@ -46,7 +46,7 @@ const Notes = () => {
       }
 
       const levelIds = [...new Set((notesData as any[]).map((n) => n.level_id))];
-      const { data: levelsData } = await supabase
+      const { data: levelsData } = await db
         .from('levels')
         .select('id, name')
         .in('id', levelIds);

@@ -38,16 +38,16 @@ const AdminNotes = () => {
   const fetchData = async () => {
     setLoading(true);
 
-    const { data: notesData } = await supabase
+    const { data: notesData } = await db
       .from('treasure_notes')
       .select('user_id, content, created_at, level_id')
       .order('created_at', { ascending: false });
 
-    const { data: profilesData } = await supabase
+    const { data: profilesData } = await db
       .from('user_profiles')
       .select('id, display_name');
 
-    const { data: levelsData } = await supabase
+    const { data: levelsData } = await db
       .from('levels')
       .select('id, name');
 
