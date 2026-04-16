@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { Compass } from 'lucide-react';
 import { toast } from 'sonner';
@@ -30,7 +30,7 @@ const Register = () => {
     setLoading(true);
     try {
       // 检查用户名是否已存在
-      const { data: existing } = await supabase
+      const { data: existing } = await db
         .from('users')
         .select('id')
         .eq('username', username.trim())
@@ -43,7 +43,7 @@ const Register = () => {
 
       // 加密密码并插入
       const password_hash = await bcrypt.hash(password.trim(), 10);
-      const { error } = await supabase
+      const { error } = await db
         .from('users')
         .insert({
           username: username.trim(),
