@@ -3,7 +3,7 @@ import { useNavigate, Link } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent } from '@/components/ui/card';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { Compass } from 'lucide-react';
 import { toast } from 'sonner';
@@ -25,7 +25,7 @@ const Login = () => {
     }
     setLoading(true);
     try {
-      const { data: user, error } = await supabase
+      const { data: user, error } = await db
         .from('users')
         .select('id, username, display_name, password_hash, is_admin')
         .eq('username', username.trim())

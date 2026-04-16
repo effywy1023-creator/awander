@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/lib/auth';
-import { supabase } from '@/integrations/supabase/client';
+import { db } from '@/lib/supabase-db';
 import { ArrowLeft } from 'lucide-react';
 
 interface NoteEntry {
@@ -38,27 +38,27 @@ const AdminNotes = () => {
   const fetchData = async () => {
     setLoading(true);
 
-    const { data: notesData } = await supabase
+    const { data: notesData } = await db
       .from('treasure_notes')
       .select('user_id, content, created_at, level_id')
       .order('created_at', { ascending: false });
 
-    const { data: profilesData } = await supabase
-      .from('users' as any)
+    const { data: profilesData } = await db
+      .from('users')
       .select('id, display_name');
 
-    const { data: levelsData } = await supabase
+    const { data: levelsData } = await db
       .from('levels')
       .select('id, name');
 
     if (notesData && profilesData && levelsData) {
       const userMap: Record<string, string> = {};
-      (profilesData as any[]).forEach((u) => { userMap[u.id] = u.display_name; });
+      (profilesData as any[]).forEach((u: any) => { userMap[u.id] = u.display_name; });
 
       const levelMap: Record<string, string> = {};
-      (levelsData as any[]).forEach((l) => { levelMap[l.id] = l.name; });
+      (levelsData as any[]).forEach((l: any) => { levelMap[l.id] = l.name; });
 
-      const mapped: NoteEntry[] = (notesData as any[]).map((n) => ({
+      const mapped: NoteEntry[] = (notesData as any[]).map((n: any) => ({
         student_name: userMap[n.user_id] || n.user_id,
         level_name: levelMap[n.level_id] || '未知关卡',
         content: n.content,
@@ -66,11 +66,19 @@ const AdminNotes = () => {
       }));
 
       setNotes(mapped);
-      setStudents([...new Set((profilesData as any[]).map((u) => u.display_name as string))].sort());
-      setLevelNames([...new Set((levelsData as any[]).map((l) => l.name as string))]);
+      setStudents([...new Set((profilesData as any[]).map((u: any) => u.display_name as string))].sort());
+      setLevelNames([...new Set((levelsData as any[]).map((l: any) => l.name as string))]);
     }
     setLoading(false);
   };
+
+  const filtered = useMemo(() => {
+    return notes.filter((n) => {
+      if (filterStudent !== 'all' && n.student_name !== filterStudent) return false;
+      if (filterLevel !== 'all' && n.level_name !== filterLevel) return false;
+      return true;
+    });
+  }, [notes, filterStudent, filterLevel]);
 
   if (!isAdmin && !authLoading) return null;
 
