@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/lib/auth';
-import { db } from '@/lib/supabase-db';
+import { supabase } from '@/integrations/supabase/client';
 import { ArrowLeft } from 'lucide-react';
 
 interface NoteEntry {
@@ -38,16 +38,16 @@ const AdminNotes = () => {
   const fetchData = async () => {
     setLoading(true);
 
-    const { data: notesData } = await db
+    const { data: notesData } = await supabase
       .from('treasure_notes')
       .select('user_id, content, created_at, level_id')
       .order('created_at', { ascending: false });
 
-    const { data: profilesData } = await db
-      .from('user' as any)
+    const { data: profilesData } = await supabase
+      .from('users' as any)
       .select('id, display_name');
 
-    const { data: levelsData } = await db
+    const { data: levelsData } = await supabase
       .from('levels')
       .select('id, name');
 
@@ -71,14 +71,6 @@ const AdminNotes = () => {
     }
     setLoading(false);
   };
-
-  const filtered = useMemo(() => {
-    return notes.filter((n) => {
-      if (filterStudent !== 'all' && n.student_name !== filterStudent) return false;
-      if (filterLevel !== 'all' && n.level_name !== filterLevel) return false;
-      return true;
-    });
-  }, [notes, filterStudent, filterLevel]);
 
   if (!isAdmin && !authLoading) return null;
 
