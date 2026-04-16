@@ -44,7 +44,7 @@ const AdminNotes = () => {
       .order('created_at', { ascending: false });
 
     const { data: profilesData } = await db
-      .from('user_profiles')
+      .from('user')
       .select('id, display_name');
 
     const { data: levelsData } = await db
