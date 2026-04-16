@@ -7,11 +7,11 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { Compass } from 'lucide-react';
 import { toast } from 'sonner';
+import bcrypt from 'bcryptjs';
 
 const Register = () => {
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
@@ -31,41 +31,27 @@ const Register = () => {
     try {
       // 检查用户名是否已存在
       const { data: existing } = await supabase
-        .from('user_profiles')
+        .from('users')
         .select('id')
         .eq('username', username.trim())
         .maybeSingle();
 
       if (existing) {
         toast.error('用户名已被使用，请换一个');
-        setLoading(false);
         return;
       }
 
-      // 没填邮箱就生成虚拟邮箱
-      const finalEmail = email.trim()
-        ? email.trim()
-        : `${username.trim()}@gentle-lore.app`;
+      // 加密密码并插入
+      const password_hash = await bcrypt.hash(password.trim(), 10);
+      const { error } = await supabase
+        .from('users')
+        .insert({
+          username: username.trim(),
+          password_hash,
+          display_name: name.trim(),
+        });
 
-      const { data, error } = await supabase.auth.signUp({
-        email: finalEmail,
-        password: password.trim(),
-        options: {
-          data: { display_name: name.trim() },
-        },
-      });
       if (error) throw error;
-
-      // 把 username 和 email 存入 user_profiles
-      if (data.user) {
-        await supabase
-          .from('user_profiles')
-          .update({
-            username: username.trim(),
-            email: finalEmail,
-          })
-          .eq('id', data.user.id);
-      }
 
       toast.success('注册成功，请登录');
       navigate('/login');
@@ -102,13 +88,6 @@ const Register = () => {
               placeholder="用户名（登录用）"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="h-12 rounded-xl bg-background/60 border-border/50 text-center"
-            />
-            <Input
-              type="email"
-              placeholder="邮箱（选填）"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
               className="h-12 rounded-xl bg-background/60 border-border/50 text-center"
             />
             <Input
