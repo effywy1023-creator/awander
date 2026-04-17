@@ -40,13 +40,27 @@ const AdminNotes = () => {
 
     const { data: notesData } = await db
       .from('treasure_notes')
-      .select('user_id, content, created_at, level_id, users(display_name), levels(name)')
+      .select('user_id, content, created_at, level_id')
       .order('created_at', { ascending: false });
 
-    if (notesData) {
+    const { data: profilesData } = await db
+      .from('users')
+      .select('id, display_name');
+
+    const { data: levelsData } = await db
+      .from('levels')
+      .select('id, name');
+
+    if (notesData && profilesData && levelsData) {
+      const userMap: Record<string, string> = {};
+      (profilesData as any[]).forEach((u: any) => { userMap[u.id] = u.display_name; });
+
+      const levelMap: Record<string, string> = {};
+      (levelsData as any[]).forEach((l: any) => { levelMap[l.id] = l.name; });
+
       const mapped: NoteEntry[] = (notesData as any[]).map((n: any) => ({
-        student_name: n.users?.display_name || '未知用户',
-        level_name: n.levels?.name || '未知关卡',
+        student_name: userMap[n.user_id] || '未知用户',
+        level_name: levelMap[n.level_id] || '未知关卡',
         content: n.content,
         created_at: n.created_at,
       }));
