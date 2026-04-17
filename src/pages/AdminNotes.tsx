@@ -40,34 +40,20 @@ const AdminNotes = () => {
 
     const { data: notesData } = await db
       .from('treasure_notes')
-      .select('user_id, content, created_at, level_id')
+      .select('user_id, content, created_at, level_id, users(display_name), levels(name)')
       .order('created_at', { ascending: false });
 
-    const { data: profilesData } = await db
-      .from('users')
-      .select('id, display_name');
-
-    const { data: levelsData } = await db
-      .from('levels')
-      .select('id, name');
-
-    if (notesData && profilesData && levelsData) {
-      const userMap: Record<string, string> = {};
-      (profilesData as any[]).forEach((u: any) => { userMap[u.id] = u.display_name; });
-
-      const levelMap: Record<string, string> = {};
-      (levelsData as any[]).forEach((l: any) => { levelMap[l.id] = l.name; });
-
+    if (notesData) {
       const mapped: NoteEntry[] = (notesData as any[]).map((n: any) => ({
-        student_name: userMap[n.user_id] || n.user_id,
-        level_name: levelMap[n.level_id] || '未知关卡',
+        student_name: n.users?.display_name || '未知用户',
+        level_name: n.levels?.name || '未知关卡',
         content: n.content,
         created_at: n.created_at,
       }));
 
       setNotes(mapped);
-      setStudents([...new Set((profilesData as any[]).map((u: any) => u.display_name as string))].sort());
-      setLevelNames([...new Set((levelsData as any[]).map((l: any) => l.name as string))]);
+      setStudents([...new Set(mapped.map((n) => n.student_name))].sort());
+      setLevelNames([...new Set(mapped.map((n) => n.level_name))]);
     }
     setLoading(false);
   };
