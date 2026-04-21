@@ -102,7 +102,7 @@ const LevelDetail = () => {
 
       if (!level) return;
       setLevelName((level as any).name);
-      setLoreText((level as any).lore_text || '');
+      setLoreText(((level as any).lore_text || '').replace(/\\n/g, '\n'));
 
       const audioIds = ((level as any).audio_ids || []) as string[];
       if (audioIds.length > 0) {
@@ -125,7 +125,7 @@ const LevelDetail = () => {
           .eq('id', (level as any).writing_id)
           .maybeSingle();
         if (writingAsset) {
-          setWritingPrompt((writingAsset as any).content_url || '');
+          setWritingPrompt(((writingAsset as any).content_url || '').replace(/\\n/g, '\n'));
         }
       }
     } catch {
