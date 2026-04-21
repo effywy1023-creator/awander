@@ -5,6 +5,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Textarea } from '@/components/ui/textarea';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/supabase-db';
+import { getInheritedTags } from '@/utils/tags';
 import { useAppConfig } from '@/hooks/use-app-config';
 import { ArrowLeft, Play, Pause, RotateCcw, BookOpen, ChevronRight } from 'lucide-react';
 import { toast } from 'sonner';
@@ -38,6 +39,7 @@ const LevelDetail = () => {
   const [newNote, setNewNote] = useState('');
   const [savingNote, setSavingNote] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
   const [currentAssetId, setCurrentAssetId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -262,6 +264,7 @@ const LevelDetail = () => {
         user_id: userId!,
         level_id: levelId!,
         content: newNote.trim(),
+        tags: selectedTags,
       });
       if (error) throw error;
       setNewNote('');
@@ -304,6 +307,13 @@ const LevelDetail = () => {
   useEffect(() => {
     return () => stopProgressTracking();
   }, []);
+
+  useEffect(() => {
+    const audioIds = audioAssets.map((a) => a.id);
+    if (audioIds.length > 0) {
+      getInheritedTags(audioIds).then(setSelectedTags);
+    }
+  }, [audioAssets]);
 
   if (loading) {
     return (
