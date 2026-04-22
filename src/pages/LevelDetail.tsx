@@ -549,7 +549,7 @@ const LevelDetail = () => {
           <div className="flex flex-col gap-2">
             {notes.map((note) => (
               <div key={note.id} className="bg-muted/50 rounded-xl p-3">
-                <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">
+                <p className="text-sm font-normal text-foreground leading-relaxed whitespace-pre-wrap">
                   {note.content}
                 </p>
                 <p className="text-xs text-muted-foreground mt-2">
@@ -575,8 +575,8 @@ const LevelDetail = () => {
               {otherNotes.map((note) => (
                 <div key={note.id} className="bg-accent/10 rounded-xl p-3">
                   <div className="flex items-center justify-between mb-2">
-                    <span className="text-xs font-medium text-muted-foreground">匿名玩家</span>
-                    <span className="text-xs text-muted-foreground">{timeAgo(note.created_at)}</span>
+                    <span className="text-xs text-muted-foreground italic">匿名玩家</span>
+                    <span className="text-xs text-muted-foreground italic">{timeAgo(note.created_at)}</span>
                   </div>
                   <p className="text-sm text-muted-foreground italic leading-relaxed whitespace-pre-wrap">
                     {note.content}

@@ -65,7 +65,7 @@ const Login = () => {
               {t('login_title', '身体藏宝图 · 寻宝行动')}
             </h1>
             <p className="text-sm text-muted-foreground">
-              {t('login_subtitle', '输入你的用户名和密码，开始今日的地图解锁。')}
+              {t('login_subtitle', '输入你的暗号，开始今日的探险。')}
             </p>
           </div>
           <div className="w-full flex flex-col gap-4">
