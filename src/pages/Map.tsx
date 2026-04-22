@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useAuth } from '@/lib/auth';
 import { db } from '@/lib/supabase-db';
 import { useAppConfig } from '@/hooks/use-app-config';
-import { LogOut, Lock, MapPin, Tent, Compass, Waves, Sun, DoorOpen, Mountain, Cloud, Flame, Trees, BookOpen, Sparkles, ArrowLeft, type LucideIcon } from 'lucide-react';
+import { LogOut, Lock, MapPin, Tent, Compass, Waves, Sun, DoorOpen, Mountain, Cloud, Flame, Trees, Scroll, Sparkles, ArrowLeft, type LucideIcon } from 'lucide-react';
 import { toast } from 'sonner';
 
 const LEVEL_ICON_MAP: Record<string, LucideIcon> = {
@@ -274,14 +274,14 @@ const Map = () => {
                 )}
               </span>
               <span className="text-xs text-muted-foreground">
-                探索时间：{totalMinutes} 分钟｜探索笔记：{noteCount} 条
+                探索时间：{totalMinutes} 分钟｜探索线索：{noteCount} 条
               </span>
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           <Button variant="ghost" size="icon" onClick={() => navigate('/notes')}>
-            <BookOpen className="w-5 h-5 text-muted-foreground" />
+            <Scroll className="w-5 h-5 text-muted-foreground" />
           </Button>
           <Button variant="ghost" size="icon" onClick={handleLogout}>
             <LogOut className="w-5 h-5 text-muted-foreground" />
@@ -473,7 +473,7 @@ const Map = () => {
               <div style={{ width: 1, background: 'rgba(139,90,20,0.2)' }} />
               <div className="text-center">
                 <p className="text-xl font-medium" style={{ color: '#3d2b0e' }}>{noteCount}</p>
-                <p className="text-xs mt-1" style={{ color: '#8B6914' }}>探险笔记</p>
+                <p className="text-xs mt-1" style={{ color: '#8B6914' }}>探索线索</p>
               </div>
               <div style={{ width: 1, background: 'rgba(139,90,20,0.2)' }} />
               <div className="text-center">
