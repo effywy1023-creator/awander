@@ -24,6 +24,24 @@ interface Note {
   created_at: string;
 }
 
+interface OtherNote {
+  id: string;
+  content: string;
+  created_at: string;
+}
+
+const OTHER_NOTES_BATCH = 3;
+
+const timeAgo = (dateStr: string): string => {
+  const diff = Math.floor((Date.now() - new Date(dateStr + 'Z').getTime()) / 1000);
+  if (diff < 60) return '刚刚';
+  if (diff < 3600) return `${Math.floor(diff / 60)} 分钟前`;
+  if (diff < 86400) return `${Math.floor(diff / 3600)} 小时前`;
+  if (diff < 86400 * 30) return `${Math.floor(diff / 86400)} 天前`;
+  if (diff < 86400 * 365) return `${Math.floor(diff / (86400 * 30))} 个月前`;
+  return `${Math.floor(diff / (86400 * 365))} 年前`;
+};
+
 const LevelDetail = () => {
   const { levelId } = useParams<{ levelId: string }>();
   const navigate = useNavigate();
@@ -41,6 +59,13 @@ const LevelDetail = () => {
   const [loading, setLoading] = useState(true);
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
 
+  const [otherNotes, setOtherNotes] = useState<OtherNote[]>([]);
+  const [otherNotesOffset, setOtherNotesOffset] = useState(0);
+  const [otherNotesHasMore, setOtherNotesHasMore] = useState(false);
+  const [loadingOtherNotes, setLoadingOtherNotes] = useState(false);
+  const [hasSubmittedBefore, setHasSubmittedBefore] = useState(false);
+  const hasSetSubmitted = useRef(false);
+
   const [currentAssetId, setCurrentAssetId] = useState<string | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
@@ -56,6 +81,11 @@ const LevelDetail = () => {
       return;
     }
     setAudioAssets([]);
+    setOtherNotes([]);
+    setOtherNotesOffset(0);
+    setOtherNotesHasMore(false);
+    setHasSubmittedBefore(false);
+    hasSetSubmitted.current = false;
     loadLevel();
     loadNotes();
     setChildLevels(prev => prev.map(child => ({ ...child, unlocked: true })));
@@ -137,6 +167,25 @@ const LevelDetail = () => {
     }
   };
 
+  const loadOtherNotes = async (offset: number) => {
+    setLoadingOtherNotes(true);
+    try {
+      const { data } = await db
+        .from('treasure_notes')
+        .select('id, content, created_at')
+        .eq('level_id', levelId!)
+        .neq('user_id', userId!)
+        .order('created_at', { ascending: false })
+        .range(offset, offset + OTHER_NOTES_BATCH - 1);
+      const fetched = (data as any[]) || [];
+      setOtherNotes(prev => offset === 0 ? fetched : [...prev, ...fetched]);
+      setOtherNotesOffset(offset + fetched.length);
+      setOtherNotesHasMore(fetched.length === OTHER_NOTES_BATCH);
+    } finally {
+      setLoadingOtherNotes(false);
+    }
+  };
+
   const loadNotes = async () => {
     const { data } = await db
       .from('treasure_notes')
@@ -144,7 +193,14 @@ const LevelDetail = () => {
       .eq('user_id', userId!)
       .eq('level_id', levelId!)
       .order('created_at', { ascending: false });
-    if (data) setNotes(data as any[]);
+    if (data) {
+      setNotes(data as any[]);
+      if (!hasSetSubmitted.current && (data as any[]).length > 0) {
+        hasSetSubmitted.current = true;
+        setHasSubmittedBefore(true);
+        loadOtherNotes(0);
+      }
+    }
   };
 
   const playAudio = async (asset: Asset) => {
@@ -504,6 +560,44 @@ const LevelDetail = () => {
           </div>
         )}
       </section>
+
+      {hasSubmittedBefore && (
+        <section className="mb-6">
+          <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+            其他探险家的发现
+          </h2>
+          {otherNotes.length === 0 && !loadingOtherNotes ? (
+            <p className="text-sm text-muted-foreground text-center py-6">
+              还没有其他探险家到过这里
+            </p>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {otherNotes.map((note) => (
+                <div key={note.id} className="bg-accent/10 rounded-xl p-3">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-xs font-medium text-muted-foreground">匿名玩家</span>
+                    <span className="text-xs text-muted-foreground">{timeAgo(note.created_at)}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground italic leading-relaxed whitespace-pre-wrap">
+                    {note.content}
+                  </p>
+                </div>
+              ))}
+              {otherNotesHasMore && (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full rounded-xl text-muted-foreground"
+                  disabled={loadingOtherNotes}
+                  onClick={() => loadOtherNotes(otherNotesOffset)}
+                >
+                  {loadingOtherNotes ? '加载中...' : '加载更多'}
+                </Button>
+              )}
+            </div>
+          )}
+        </section>
+      )}
 
       {childLevels.length > 0 && (
         <section className="mb-6">
