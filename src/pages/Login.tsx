@@ -92,7 +92,8 @@ const Login = () => {
               {loading ? '验证中...' : t('login_button', '立即开始')}
             </Button>
           </div>
-          <p className="text-sm text-muted-foreground">
+          {/* 注册入口暂时隐藏，路由 /register 保留 */}
+          <p className="text-sm text-muted-foreground" style={{ display: 'none' }}>
             还没有账号？{' '}
             <Link to="/register" className="text-primary underline underline-offset-2 hover:text-primary/80">
               立即注册
