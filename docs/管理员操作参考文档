@@ -1,0 +1,386 @@
+# 管理员操作参考文档
+
+> 项目：gentle-lore v2 | 整理日期：2026-04-29
+> 用途：记录所有管理操作及对应 SQL，为后续开发管理员界面做准备
+> 当前操作方式：Supabase 控制台 → SQL Editor 执行
+
+---
+
+## 操作总览
+
+| 模块 | 操作 | 频率预估 |
+|------|------|----------|
+| 用户管理 | 新增用户、授权产品 | 每批新学员 |
+| 素材管理 | 上传音频、新增写作提示 | 每次备课后 |
+| 关卡管理 | 新增关卡、更新标签 | 不定期 |
+| 航线管理 | 新增/更新航线 | 每批新学员或新内容 |
+| 数据查看 | 查看学员写作、练习时长 | 日常 |
+| 文案配置 | 修改前端显示文字 | 偶尔 |
+
+---
+
+## 一、用户管理
+
+### 1.1 新增普通用户
+
+```sql
+INSERT INTO users (username, password_hash, display_name, is_admin)
+VALUES ('username', '加密后的密码', '显示姓名', false);
+```
+
+> ⚠️ password_hash 需要用 bcryptjs 加密，不能直接存明文密码。
+> 当前临时方案：在前端注册页让用户自己注册，管理员再授权产品。
+
+### 1.2 新增管理员用户
+
+```sql
+INSERT INTO users (username, password_hash, display_name, is_admin)
+VALUES ('admin001', '加密后的密码', '管理员姓名', true);
+```
+
+### 1.3 将现有用户升级为管理员
+
+```sql
+UPDATE users
+SET is_admin = true
+WHERE username = 'username';
+```
+
+### 1.4 查看所有用户
+
+```sql
+SELECT id, username, display_name, is_admin, created_at
+FROM users
+ORDER BY created_at DESC;
+```
+
+### 1.5 授权用户访问产品
+
+```sql
+-- 先查产品 ID
+SELECT id, name FROM products;
+
+-- 再查用户 ID
+SELECT id, username, display_name FROM users WHERE username = 'username';
+
+-- 授权
+INSERT INTO user_products (user_id, product_id)
+VALUES ('用户的uuid', '产品的uuid');
+```
+
+### 1.6 撤销产品授权
+
+```sql
+DELETE FROM user_products
+WHERE user_id = '用户的uuid'
+AND product_id = '产品的uuid';
+```
+
+### 1.7 查看某用户的产品权限
+
+```sql
+SELECT p.name, up.granted_at
+FROM user_products up
+JOIN products p ON up.product_id = p.id
+WHERE up.user_id = '用户的uuid';
+```
+
+### 1.8 重置用户密码
+
+```sql
+UPDATE users
+SET password_hash = '新的加密密码'
+WHERE username = 'username';
+```
+
+---
+
+## 二、素材管理
+
+### 2.1 上传音频（两步操作）
+
+**第一步：** 进入 Supabase 控制台 → Storage → `audio-files` bucket → Upload 上传音频文件（支持 .m4a、.mp3）→ 点击文件复制公开 URL
+
+**第二步：**
+```sql
+INSERT INTO assets (id, type, name, content_url, tags)
+VALUES (
+  'V001',          -- 自定义，建议 V001、V002 格式
+  'audio',
+  '音频名称',
+  '第一步复制的公开URL',
+  '{"chest", "basic", "supine"}'  -- 身体部位、难度、体位标签
+);
+```
+
+### 2.2 新增写作提示
+
+```sql
+INSERT INTO assets (id, type, name, content_url)
+VALUES (
+  'W001',          -- 自定义，建议 W001、W002 格式
+  'writing',
+  '写作提示名称',
+  '写作提示的完整文字内容，支持换行用\n'
+);
+```
+
+### 2.3 更新素材标签
+
+```sql
+UPDATE assets
+SET tags = '{"spine", "challenge", "prone"}'
+WHERE id = 'V001';
+```
+
+### 2.4 查看所有素材
+
+```sql
+SELECT id, type, name, tags FROM assets ORDER BY type, id;
+```
+
+---
+
+## 三、标签管理
+
+> 标签分三个类型：`body_part`（身体部位）、`difficulty`（难度）、`body_position`（体位）
+
+### 3.1 查看所有标签
+
+```sql
+SELECT id, category, label_zh, sort_order
+FROM tags_asset_level
+ORDER BY category, sort_order;
+```
+
+### 3.2 新增标签
+
+```sql
+INSERT INTO tags_asset_level (id, category, label_zh, sort_order)
+VALUES ('new_tag', 'body_part', '新部位名称', 11);
+```
+
+---
+
+## 四、关卡管理
+
+### 4.1 新增关卡
+
+```sql
+INSERT INTO levels (
+  product_id,
+  name,
+  audio_ids,
+  writing_id,
+  lore_text,
+  map_intro,
+  parent_id,
+  x,
+  y,
+  unlock_condition
+)
+VALUES (
+  '产品的uuid',
+  '关卡名称',
+  '["V001", "V002"]',       -- 音频 asset ID 数组，按顺序播放
+  'W001',                   -- 写作提示 asset ID
+  '故事情节文字---准备提示文字',  -- --- 前是故事，--- 后是准备提示
+  '关卡列表简介',
+  'parent_level_id',        -- 父级关卡 ID，起始关卡填 null
+  300,                      -- 地图横坐标（基准宽度 600px）
+  400,                      -- 地图纵坐标
+  'parent_note'             -- 解锁条件，默认不用改
+);
+```
+
+**坐标参考：**
+- 基准宽度 600px，移动端自动缩放
+- 左右交替营造 S 形蜿蜒效果
+- 相邻关卡纵向间距约 120-180px
+
+**lore_text 格式示例：**
+```
+你生活的村庄坐落在这片古老大陆的边缘。今天，你决定出发。
+---
+在出发前，请找一个安静的地方躺下来，准备好你的瑜伽垫。
+```
+
+### 4.2 查看所有关卡
+
+```sql
+SELECT id, name, parent_id, x, y FROM levels WHERE product_id = '产品uuid' ORDER BY name;
+```
+
+### 4.3 新增关卡后，记得把关卡 ID 加入航线（见第五节）
+
+---
+
+## 五、航线管理
+
+### 5.1 查看现有航线
+
+```sql
+SELECT * FROM routes WHERE product_id = '产品uuid';
+```
+
+### 5.2 新增航线
+
+```sql
+INSERT INTO routes (product_id, name, level_ids)
+VALUES (
+  '产品的uuid',
+  '航线名称（内部用）',
+  '["level_id_1", "level_id_2", "level_id_3"]'
+);
+```
+
+### 5.3 更新航线（新增关卡时）
+
+```sql
+UPDATE routes
+SET level_ids = '["level_id_1", "level_id_2", "level_id_3", "新关卡ID"]'
+WHERE id = '航线的uuid';
+```
+
+> **注意：** `level_ids` 数组顺序决定列表视图的排列顺序。
+> 地图视图的连线顺序由 `levels.parent_id` 决定，与此无关。
+
+---
+
+## 六、数据查看
+
+### 6.1 查看所有用户的写作记录
+
+```sql
+SELECT
+  u.display_name,
+  l.name AS level_name,
+  tn.content,
+  tn.tags,
+  tn.created_at
+FROM treasure_notes tn
+JOIN users u ON tn.user_id = u.id
+JOIN levels l ON tn.level_id = l.id
+ORDER BY tn.created_at DESC;
+```
+
+### 6.2 查看特定用户的写作
+
+```sql
+SELECT
+  l.name AS level_name,
+  tn.content,
+  tn.tags,
+  tn.created_at
+FROM treasure_notes tn
+JOIN levels l ON tn.level_id = l.id
+WHERE tn.user_id = '用户的uuid'
+ORDER BY tn.created_at DESC;
+```
+
+### 6.3 查看特定关卡的所有写作
+
+```sql
+SELECT
+  u.display_name,
+  tn.content,
+  tn.tags,
+  tn.created_at
+FROM treasure_notes tn
+JOIN users u ON tn.user_id = u.id
+WHERE tn.level_id = '关卡ID'
+ORDER BY tn.created_at DESC;
+```
+
+### 6.4 查看用户练习时长统计
+
+```sql
+SELECT
+  u.display_name,
+  ROUND(SUM(up.total_sec) / 60) AS total_minutes,
+  COUNT(DISTINCT up.level_id) AS levels_explored
+FROM user_progress up
+JOIN users u ON up.user_id = u.id
+GROUP BY u.id, u.display_name
+ORDER BY total_minutes DESC;
+```
+
+### 6.5 查看单个用户的练习详情
+
+```sql
+SELECT
+  l.name AS level_name,
+  ROUND(up.total_sec / 60) AS minutes,
+  up.last_pos,
+  up.updated_at
+FROM user_progress up
+JOIN levels l ON up.level_id = l.id
+WHERE up.user_id = '用户的uuid'
+ORDER BY up.updated_at DESC;
+```
+
+---
+
+## 七、前端文案配置
+
+### 7.1 查看所有可配置文案
+
+```sql
+SELECT key, value, description FROM app_config;
+```
+
+### 7.2 修改文案
+
+```sql
+UPDATE app_config SET value = '新文字' WHERE key = 'key名称';
+```
+
+### 7.3 常用配置项
+
+| key | 说明 |
+|-----|------|
+| `login_title` | 登录页主标题 |
+| `login_subtitle` | 登录页副标题 |
+| `login_button` | 登录按钮文字 |
+| `save_button_text` | 写作提交按钮文字 |
+| `next_level_button` | 下一关按钮文字 |
+| `map_title` | 地图页主标题 |
+| `writing_section_title` | 写作区块标题 |
+
+---
+
+## 八、产品管理
+
+### 8.1 查看所有产品
+
+```sql
+SELECT id, name, description, theme, is_active FROM products;
+```
+
+### 8.2 新增产品
+
+```sql
+INSERT INTO products (name, description, theme, is_active)
+VALUES ('产品名称', '产品简介', 'theme标识', true);
+```
+
+### 8.3 下线产品（学员不可见）
+
+```sql
+UPDATE products SET is_active = false WHERE id = '产品uuid';
+```
+
+---
+
+## 九、未来管理界面功能规划
+
+当学员规模增长或需要让助理操作时，以下功能适合做成界面：
+
+| 优先级 | 功能 | 原因 |
+|--------|------|------|
+| 高 | 用户列表 + 授权产品 | 每批新学员都要操作 |
+| 高 | 查看学员写作（现有 AdminNotes.tsx） | 已有基础版 |
+| 中 | 素材上传（音频 URL + 写作提示文字） | 容易填错 |
+| 中 | 航线配置（关卡拖拽排序） | 直觉操作 |
+| 低 | 关卡新增/编辑 | 频率低，SQL 可控 |
+| 低 | 前端文案修改 | 频率极低 |
