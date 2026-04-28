@@ -1,0 +1,16 @@
+{
+  "name": "heyeffy",
+  "short_name": "heyeffy",
+  "description": "An interactive platform for exploring digital worlds, managing user progress, and submitting creative writing.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#1a1a2e",
+  "theme_color": "#2d1b4e",
+  "icons": [
+    {
+      "src": "/apple-touch-icon.png",
+      "sizes": "180x180",
+      "type": "image/png"
+    }
+  ]
+}
