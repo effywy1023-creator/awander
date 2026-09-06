@@ -50,9 +50,9 @@ const Map = () => {
   const [statusMap, setStatusMap] = useState<Record<string, LevelStatus>>({});
   const [unlockedSet, setUnlockedSet] = useState<Set<string>>(new Set());
   const [routeDisplayName, setRouteDisplayName] = useState<string | null>(null);
-  const [viewMode, setViewMode] = useState<ViewMode>(
-    () => (localStorage.getItem('preferred_view') as ViewMode) || 'map'
-  );
+  const [viewMode, setViewMode] = useState<ViewMode>('map');
+  const [productDefaultView, setProductDefaultView] = useState<ViewMode>('map');
+  const [productViewLoading, setProductViewLoading] = useState(true);
   const [scale, setScale] = useState(1);
   const [totalMinutes, setTotalMinutes] = useState(0);
   const [noteCount, setNoteCount] = useState(0);
@@ -93,9 +93,33 @@ const Map = () => {
       navigate('/products', { replace: true });
       return;
     }
+    loadProductView();
     loadLevels();
     checkMultipleProducts();
   }, [isLoggedIn, authLoading, currentProductId]);
+
+  const loadProductView = async () => {
+    setProductViewLoading(true);
+    try {
+      const { data } = await db
+        .from('products')
+        .select('default_view')
+        .eq('id', currentProductId!)
+        .maybeSingle();
+
+      const dv = ((data as any)?.default_view as ViewMode) || 'map';
+      setProductDefaultView(dv);
+
+      if (dv === 'list') {
+        setViewMode('list');
+      } else {
+        const stored = localStorage.getItem(`preferred_view_${currentProductId}`) as ViewMode | null;
+        setViewMode(stored === 'map' || stored === 'list' ? stored : dv);
+      }
+    } finally {
+      setProductViewLoading(false);
+    }
+  };
 
   const checkMultipleProducts = async () => {
     const { data } = await db
@@ -146,19 +170,23 @@ const Map = () => {
         db
           .from('user_progress')
           .select('level_id')
-          .eq('user_id', userId!),
+          .eq('user_id', userId!)
+          .in('level_id', levelIds),
         db
           .from('treasure_notes')
           .select('level_id')
-          .eq('user_id', userId!),
+          .eq('user_id', userId!)
+          .in('level_id', levelIds),
         db
           .from('user_progress')
           .select('total_sec')
-          .eq('user_id', userId!),
+          .eq('user_id', userId!)
+          .in('level_id', levelIds),
         db
           .from('treasure_notes')
           .select('id', { count: 'exact', head: true })
-          .eq('user_id', userId!),
+          .eq('user_id', userId!)
+          .in('level_id', levelIds),
       ]);
 
       const progressLevels = new Set((progressRes.data as any[] || []).map((p) => p.level_id));
@@ -199,6 +227,8 @@ const Map = () => {
       setLoading(false);
     }
   };
+
+  const isListOnlyProduct = productDefaultView === 'list';
 
   const levelMap = useMemo(() => {
     const m: Record<string, Level> = {};
@@ -290,26 +320,28 @@ const Map = () => {
       </div>
 
       {/* View toggle */}
-      <div className="flex rounded-full p-1 bg-card border border-border/50 mb-5 w-fit mx-auto">
-        {(['map', 'list'] as ViewMode[]).map((mode) => (
-          <button
-            key={mode}
-            onClick={() => {
-              setViewMode(mode);
-              localStorage.setItem('preferred_view', mode);
-            }}
-            className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
-              viewMode === mode
-                ? 'bg-primary text-primary-foreground shadow-sm'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            {mode === 'map' ? '地图' : '列表'}
-          </button>
-        ))}
-      </div>
+      {!isListOnlyProduct && (
+        <div className="flex rounded-full p-1 bg-card border border-border/50 mb-5 w-fit mx-auto">
+          {(['map', 'list'] as ViewMode[]).map((mode) => (
+            <button
+              key={mode}
+              onClick={() => {
+                setViewMode(mode);
+                localStorage.setItem(`preferred_view_${currentProductId}`, mode);
+              }}
+              className={`px-5 py-1.5 rounded-full text-sm font-medium transition-all ${
+                viewMode === mode
+                  ? 'bg-primary text-primary-foreground shadow-sm'
+                  : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              {mode === 'map' ? '地图' : '列表'}
+            </button>
+          ))}
+        </div>
+      )}
 
-      {loading ? (
+      {loading || productViewLoading ? (
         <div className="flex justify-center py-20">
           <div className="animate-pulse text-muted-foreground">加载中...</div>
         </div>
@@ -416,9 +448,11 @@ const Map = () => {
                     )}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="text-xs text-muted-foreground mb-1">
-                      第 {idx + 1} 站
-                    </div>
+                    {!isListOnlyProduct && (
+                      <div className="text-xs text-muted-foreground mb-1">
+                        第 {idx + 1} 站
+                      </div>
+                    )}
                     <h2 className="text-base font-medium text-foreground truncate">
                       {level.name}
                     </h2>

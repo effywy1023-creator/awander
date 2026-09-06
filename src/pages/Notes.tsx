@@ -12,6 +12,7 @@ interface NoteWithLevel {
   created_at: string;
   level_id: string;
   level_name: string;
+  product_name: string;
   tags: string[];
 }
 
@@ -69,7 +70,7 @@ const Notes = () => {
     try {
       const { data: notesData } = await db
         .from('treasure_notes')
-        .select('*')
+        .select('*, levels(name, product_id, products(name))')
         .eq('user_id', userId!)
         .order('created_at', { ascending: false });
 
@@ -79,21 +80,13 @@ const Notes = () => {
         return;
       }
 
-      const levelIds = [...new Set((notesData as any[]).map((n) => n.level_id))];
-      const { data: levelsData } = await db
-        .from('levels')
-        .select('id, name')
-        .in('id', levelIds);
-
-      const levelNameMap: Record<string, string> = {};
-      ((levelsData as any[]) || []).forEach((l) => (levelNameMap[l.id] = l.name));
-
       const mapped: NoteWithLevel[] = (notesData as any[]).map((n) => ({
         id: n.id,
         content: n.content,
         created_at: n.created_at,
         level_id: n.level_id,
-        level_name: levelNameMap[n.level_id] || '未知关卡',
+        level_name: n.levels?.name || '未知关卡',
+        product_name: n.levels?.products?.name || '未知产品',
         tags: n.tags ?? [],
       }));
 
@@ -250,7 +243,10 @@ const Notes = () => {
                 <span className="text-xs text-muted-foreground">
                   {new Date(note.created_at + 'Z').toLocaleString('zh-CN', { timeZone: 'Asia/Singapore' })}
                 </span>
-                <span className="text-xs text-muted-foreground">
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {note.product_name}
+                  </span>
                   {note.level_name}
                 </span>
               </div>
@@ -261,7 +257,10 @@ const Notes = () => {
         <div className="flex flex-col gap-6">
           {groupedByLevel().map((group) => (
             <div key={group[0].level_id}>
-              <h2 className="text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+              <h2 className="flex items-center gap-2 text-xs font-medium text-muted-foreground uppercase tracking-wide mb-3">
+                <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary normal-case tracking-normal">
+                  {group[0].product_name}
+                </span>
                 {group[0].level_name}
               </h2>
               <div className="flex flex-col gap-2">
