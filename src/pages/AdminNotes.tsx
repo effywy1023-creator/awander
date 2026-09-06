@@ -9,6 +9,7 @@ import { ArrowLeft } from 'lucide-react';
 interface NoteEntry {
   student_name: string;
   level_name: string;
+  product_name: string;
   content: string;
   created_at: string;
 }
@@ -49,18 +50,30 @@ const AdminNotes = () => {
 
     const { data: levelsData } = await db
       .from('levels')
+      .select('id, name, product_id');
+
+    const { data: productsData } = await db
+      .from('products')
       .select('id, name');
 
     if (notesData && profilesData && levelsData) {
       const userMap: Record<string, string> = {};
       (profilesData as any[]).forEach((u: any) => { userMap[u.id] = u.display_name; });
 
+      const productMap: Record<string, string> = {};
+      ((productsData as any[]) || []).forEach((p: any) => { productMap[p.id] = p.name; });
+
       const levelMap: Record<string, string> = {};
-      (levelsData as any[]).forEach((l: any) => { levelMap[l.id] = l.name; });
+      const levelProductMap: Record<string, string> = {};
+      (levelsData as any[]).forEach((l: any) => {
+        levelMap[l.id] = l.name;
+        levelProductMap[l.id] = productMap[l.product_id] || '未知产品';
+      });
 
       const mapped: NoteEntry[] = (notesData as any[]).map((n: any) => ({
         student_name: userMap[n.user_id] || '未知用户',
         level_name: levelMap[n.level_id] || '未知关卡',
+        product_name: levelProductMap[n.level_id] || '未知产品',
         content: n.content,
         created_at: n.created_at,
       }));
@@ -127,7 +140,12 @@ const AdminNotes = () => {
             <div key={i} className="bg-muted/50 rounded-xl p-3 mb-3">
               <div className="flex items-baseline justify-between mb-1">
                 <span className="text-sm font-medium text-foreground">{note.student_name}</span>
-                <span className="text-xs text-muted-foreground">{note.level_name}</span>
+                <span className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                  <span className="px-1.5 py-0.5 rounded-full bg-primary/10 text-primary">
+                    {note.product_name}
+                  </span>
+                  {note.level_name}
+                </span>
               </div>
               <p className="text-sm text-foreground leading-relaxed whitespace-pre-wrap">{note.content}</p>
               <p className="text-xs text-muted-foreground mt-2">
