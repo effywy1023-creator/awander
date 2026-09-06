@@ -44,7 +44,7 @@ const BASE_NODE_SIZE = 56;
 const Map = () => {
   const { userId, displayName, isAdmin, isLoggedIn, currentProductId, loading: authLoading, logout, setProduct } = useAuth();
   const navigate = useNavigate();
-  const { t } = useAppConfig();
+  const { t, config } = useAppConfig();
   const [levels, setLevels] = useState<Level[]>([]);
   const [loading, setLoading] = useState(true);
   const [statusMap, setStatusMap] = useState<Record<string, LevelStatus>>({});
@@ -492,12 +492,16 @@ const Map = () => {
               <p className="text-xs font-medium uppercase tracking-widest mb-1" style={{ color: '#8B5E14' }}>
                 {t('medal_subtitle', '全部完成')}
               </p>
-              <h2 className="text-xl font-medium mb-2" style={{ color: '#3d2b0e' }}>
-                {t('medal_title', '航线已走完')}
-              </h2>
-              <p className="text-sm leading-relaxed" style={{ color: '#6b4c1e' }}>
-                {t('medal_body', '你做到了。')}
-              </p>
+              {config.medal_title !== '' && (
+                <h2 className="text-xl font-medium mb-2" style={{ color: '#3d2b0e' }}>
+                  {t('medal_title', '航线已走完')}
+                </h2>
+              )}
+              {config.medal_body !== '' && (
+                <p className="text-sm leading-relaxed" style={{ color: '#6b4c1e' }}>
+                  {t('medal_body', '你做到了。')}
+                </p>
+              )}
             </div>
             <div className="w-full pt-4 flex justify-center gap-6" style={{ borderTop: '1px solid rgba(139,90,20,0.25)' }}>
               <div className="text-center">
